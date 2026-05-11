@@ -43,110 +43,116 @@ export default function LoginClient() {
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center p-4 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-50 via-zinc-50 to-white dark:from-indigo-950 dark:via-zinc-950 dark:to-black">
-            <div className="absolute inset-0 bg-grid-zinc-200/50 [mask-image:radial-gradient(ellipse_at_center,black_70%,transparent_100%)] pointer-events-none" />
+        <div className="flex min-h-screen items-center justify-center p-4 bg-background">
+            <div className="absolute inset-0 bg-grid-zinc-200/50 dark:bg-grid-white/5 [mask-image:radial-gradient(ellipse_at_center,black_60%,transparent_100%)] pointer-events-none" />
 
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="w-full max-w-md relative z-10"
+                className="w-full max-w-[400px] relative z-10"
             >
-                <div className="text-center mb-8">
+                <div className="text-center mb-10">
                     <motion.div
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary text-white shadow-2xl shadow-primary/40 mb-4"
+                        className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 text-primary mb-6"
                     >
-                        <QrCode className="w-8 h-8" />
+                        <QrCode className="w-10 h-10" />
                     </motion.div>
-                    <h1 className="text-3xl font-black tracking-tighter uppercase italic">
-                        Absensi <span className="text-primary not-italic">Berbasis QR</span>
+                    <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+                        Selamat Datang
                     </h1>
-                    <p className="text-muted-foreground font-bold text-[10px] uppercase tracking-[0.4em] mt-1 opacity-50">Secure Attendance System</p>
+                    <p className="text-muted-foreground font-medium text-sm mt-2">
+                        Masuk ke portal Absensi-QR
+                    </p>
                 </div>
 
-                <Card className="glass-card border-0 shadow-2xl relative overflow-hidden p-2">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-12 -mt-12 blur-2xl" />
-
-                    <CardHeader className="text-center pb-8 pt-6">
-                        <CardTitle className="text-2xl font-black italic">AUTHENTICATION</CardTitle>
-                        <CardDescription className="font-medium text-xs">Akses portal resmi monitoring kehadiran karyawan.</CardDescription>
+                <Card className="border-0 shadow-2xl relative overflow-hidden p-4">
+                    <CardHeader className="text-center pb-6">
+                        <CardTitle className="text-xl font-semibold">Masuk ke Akun Anda</CardTitle>
+                        <CardDescription className="font-medium text-sm">Gunakan email yang terdaftar</CardDescription>
                     </CardHeader>
 
                     <CardContent>
-                        <form onSubmit={handleLogin} className="space-y-6">
-                            <div className="space-y-3">
-                                <Label htmlFor="email" className="text-[10px] font-black uppercase tracking-widest opacity-50 flex items-center gap-2">
-                                    <Mail className="w-3 h-3" /> Email Address
+                        <form onSubmit={handleLogin} className="space-y-5">
+                            <div className="space-y-2">
+                                <Label htmlFor="email" className="text-sm font-medium flex items-center gap-2 ml-1">
+                                    <Mail className="w-4 h-4 text-muted-foreground" /> Email
                                 </Label>
                                 <Input
                                     id="email"
                                     type="email"
-                                    placeholder=""
+                                    placeholder="nama@email.com"
                                     required
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="h-12 rounded-xl bg-black/[0.03] dark:bg-white/5 border-black/[0.08] dark:border-white/10 focus:ring-primary/20"
+                                    className="h-14 rounded-2xl bg-black/[0.02] dark:bg-white/[0.02] border-black/[0.05] dark:border-white/[0.05] focus:bg-transparent"
                                 />
                             </div>
-                            <div className="space-y-3">
-                                <Label htmlFor="password" title="password-label" className="text-[10px] font-black uppercase tracking-widest opacity-50 flex items-center gap-2">
-                                    <Lock className="w-3 h-3" /> User Password
+                            <div className="space-y-2">
+                                <Label htmlFor="password" title="password-label" className="text-sm font-medium flex items-center gap-2 ml-1">
+                                    <Lock className="w-4 h-4 text-muted-foreground" /> Kata Sandi
                                 </Label>
                                 <div className="relative">
                                     <Input
                                         id="password"
                                         type={showPassword ? "text" : "password"}
+                                        placeholder="••••••••"
                                         required
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="h-12 rounded-xl bg-black/[0.03] dark:bg-white/5 border-black/[0.08] dark:border-white/10 focus:ring-primary/20 pr-12"
+                                        className="h-14 rounded-2xl bg-black/[0.02] dark:bg-white/[0.02] border-black/[0.05] dark:border-white/[0.05] focus:bg-transparent pr-12"
                                     />
                                     <button
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/10"
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
                                         tabIndex={-1}
                                     >
-                                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                     </button>
                                 </div>
                             </div>
 
                             <AnimatePresence>
                                 {error && (
-                                    <motion.p
+                                    <motion.div
                                         initial={{ height: 0, opacity: 0 }}
                                         animate={{ height: "auto", opacity: 1 }}
                                         exit={{ height: 0, opacity: 0 }}
-                                        className="text-xs text-rose-500 font-bold bg-rose-500/10 p-3 rounded-lg border border-rose-500/20"
+                                        className="overflow-hidden"
                                     >
-                                        {error}
-                                    </motion.p>
+                                        <p className="text-sm text-destructive font-medium bg-destructive/10 p-4 rounded-2xl border border-destructive/20 mt-2 text-center">
+                                            {error}
+                                        </p>
+                                    </motion.div>
                                 )}
                             </AnimatePresence>
 
-                            <button type="submit" className="w-full h-12 bg-primary text-primary-foreground rounded-xl font-black uppercase tracking-widest shadow-xl shadow-primary/20 group hover:opacity-90 disabled:opacity-50 flex items-center justify-center transition-all" disabled={loading}>
+                            <Button 
+                                type="submit" 
+                                className="w-full h-14 rounded-full font-semibold text-base mt-4 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all" 
+                                disabled={loading}
+                            >
                                 {loading ? (
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                                 ) : (
                                     <>
-                                        Authorize Access
-                                        <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                                        Masuk Sekarang
                                     </>
                                 )}
-                            </button>
+                            </Button>
                         </form>
                     </CardContent>
 
-                    <CardFooter className="pb-8">
-                        <p className="text-center text-[10px] text-muted-foreground opacity-50 w-full">
-                            Hubungi admin untuk pendaftaran akun.
+                    <CardFooter className="pb-4">
+                        <p className="text-center text-sm text-muted-foreground w-full">
+                            Belum punya akun? Hubungi Admin
                         </p>
                     </CardFooter>
                 </Card>
 
-                <p className="text-center mt-12 text-[10px] font-black text-muted-foreground/30 uppercase tracking-[0.5em]">
+                <p className="text-center mt-10 text-xs font-medium text-muted-foreground/50">
                     © 2026 Absensi-QR v2.0
                 </p>
             </motion.div>
