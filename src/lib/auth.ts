@@ -26,7 +26,8 @@ export const auth = betterAuth({
     },
     plugins: [nextCookies(), admin({ adminRoles: ["ADMIN"] })],
     trustedOrigins: [
-        "https://absensi-qr-ten.vercel.app/",
+        "https://sistem-absensi-lovat.vercel.app",
+        "https://absensi-qr-ten.vercel.app",
         "http://localhost:3000"
     ]
 });
