@@ -12,7 +12,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { BarChart3, Users, QrCode, FileText, LogOut } from "lucide-react"
+import { BarChart3, Users, QrCode, FileText, LogOut, Settings, UserCircle } from "lucide-react"
 import Link from "next/link"
 import { authClient } from "@/lib/auth-client"
 import { useRouter } from "next/navigation"
@@ -35,9 +35,14 @@ const items = [
         icon: Users,
     },
     {
-        title: "Laporan",
-        url: "/reports",
-        icon: FileText,
+        title: "Pengaturan",
+        url: "/settings",
+        icon: Settings,
+    },
+    {
+        title: "Profil Saya",
+        url: "/admin-profile",
+        icon: UserCircle,
     },
 ]
 

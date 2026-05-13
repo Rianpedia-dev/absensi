@@ -22,6 +22,10 @@ export const auth = betterAuth({
                 required: true,
                 defaultValue: "EMPLOYEE",
             },
+            nip: {
+                type: "string",
+                required: false,
+            }
         },
     },
     plugins: [nextCookies(), admin({ adminRoles: ["ADMIN"] })],

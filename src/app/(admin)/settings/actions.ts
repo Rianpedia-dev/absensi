@@ -3,6 +3,8 @@
 import { db } from "@/lib/db";
 import { attendances, user } from "@/lib/db/schema";
 import { eq, and, gte, lte } from "drizzle-orm";
+import { settings as settingsTable } from "@/lib/db/schema";
+import { revalidatePath } from "next/cache";
 import * as xlsx from "xlsx";
 
 export async function exportAttendances(startDate: string, endDate: string) {
@@ -43,4 +45,41 @@ export async function exportAttendances(startDate: string, endDate: string) {
         console.error("Export error:", error);
         return { success: false, error: "Gagal membuat file export" };
     }
+}
+
+export async function getSettings() {
+    let config = await db.select().from(settingsTable).where(eq(settingsTable.id, "global")).then(res => res[0]);
+    
+    if (!config) {
+        const defaultSettings = {
+            id: "global",
+            checkInStart: "07:00",
+            checkInEnd: "09:00",
+            checkOutStart: "16:00",
+            checkOutEnd: "18:00",
+            updatedAt: new Date(),
+        };
+        await db.insert(settingsTable).values(defaultSettings);
+        config = defaultSettings;
+    }
+    
+    return config;
+}
+
+export async function updateSettings(data: {
+    checkInStart: string;
+    checkInEnd: string;
+    checkOutStart: string;
+    checkOutEnd: string;
+}) {
+    await db.update(settingsTable)
+        .set({
+            ...data,
+            updatedAt: new Date(),
+        })
+        .where(eq(settingsTable.id, "global"));
+    
+    revalidatePath("/settings");
+    revalidatePath("/qr");
+    return { success: true };
 }

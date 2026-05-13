@@ -16,7 +16,9 @@ export async function getDashboardData() {
         checkIn: attendances.checkIn,
         checkOut: attendances.checkOut,
         userName: user.name,
-        userEmail: user.email
+        userEmail: user.email,
+        userImage: user.image,
+        userNip: user.nip,
     })
         .from(attendances)
         .leftJoin(user, eq(attendances.userId, user.id))

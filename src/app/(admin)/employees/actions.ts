@@ -10,7 +10,7 @@ export async function getEmployees() {
     return await db.select().from(user).orderBy(desc(user.createdAt));
 }
 
-export async function createEmployee(data: { name: string; email: string; password?: string; role?: string }) {
+export async function createEmployee(data: { name: string; email: string; nip?: string; image?: string; password?: string; role?: string }) {
     try {
         const password = data.password || "password123";
         const selectedRole = data.role || "EMPLOYEE";
@@ -39,8 +39,12 @@ export async function createEmployee(data: { name: string; email: string; passwo
         }
 
         if (result?.user?.id) {
-            // Set role based on user selection
-            await db.update(user).set({ role: selectedRole }).where(eq(user.id, result.user.id));
+            // Set role and other details based on user selection
+            await db.update(user).set({ 
+                role: selectedRole,
+                nip: data.nip || null,
+                image: data.image || null
+            }).where(eq(user.id, result.user.id));
         }
 
         revalidatePath("/employees");
@@ -51,11 +55,13 @@ export async function createEmployee(data: { name: string; email: string; passwo
     }
 }
 
-export async function updateEmployee(id: string, data: { name: string; email: string }) {
+export async function updateEmployee(id: string, data: { name: string; email: string; nip?: string; image?: string | null }) {
     try {
         await db.update(user).set({
             name: data.name,
             email: data.email,
+            nip: data.nip || null,
+            image: data.image,
             updatedAt: new Date(),
         }).where(eq(user.id, id));
         revalidatePath("/employees");

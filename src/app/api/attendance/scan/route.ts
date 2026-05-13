@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { attendances, user } from "@/lib/db/schema";
+import { attendances, user, settings } from "@/lib/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
@@ -34,6 +34,33 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Kode QR sudah kadaluarsa. Silakan segarkan kode di layar Admin." }, { status: 400 });
         }
 
+        // --- VALIDASI JAM OPERASIONAL ---
+        const config = await db.select().from(settings).where(eq(settings.id, "global")).then(res => res[0]);
+        let isCheckInWindow = true;
+        let isCheckOutWindow = true;
+
+        if (config) {
+            const nowTime = new Date();
+            const currentMinutes = nowTime.getHours() * 60 + nowTime.getMinutes();
+
+            const parseTime = (timeStr: string) => {
+                const [h, m] = timeStr.split(":").map(Number);
+                return h * 60 + m;
+            };
+
+            const ciStart = parseTime(config.checkInStart);
+            const ciEnd = parseTime(config.checkInEnd);
+            const coStart = parseTime(config.checkOutStart);
+            const coEnd = parseTime(config.checkOutEnd);
+
+            isCheckInWindow = currentMinutes >= ciStart && currentMinutes <= ciEnd;
+            isCheckOutWindow = currentMinutes >= coStart && currentMinutes <= coEnd;
+
+            if (!isCheckInWindow && !isCheckOutWindow) {
+                return NextResponse.json({ error: "Sesi absensi sedang tidak aktif. Silakan kembali pada jam operasional." }, { status: 403 });
+            }
+        }
+
         // Ambil tanggal hari ini dalam format YYYY-MM-DD (Local Time)
         const today = new Date().toLocaleDateString("en-CA");
         const userId = session.user.id;
@@ -48,6 +75,10 @@ export async function POST(req: Request) {
 
         if (existingRecord.length === 0) {
             // CHECK-IN
+            if (!isCheckInWindow) {
+                return NextResponse.json({ error: "Sesi Check-In belum dimulai atau sudah berakhir." }, { status: 403 });
+            }
+
             await db.insert(attendances).values({
                 id: crypto.randomUUID(), // Create unique string id
                 userId: userId,
@@ -59,6 +90,10 @@ export async function POST(req: Request) {
 
         } else if (!existingRecord[0].checkOut) {
             // CHECK-OUT
+            if (!isCheckOutWindow) {
+                return NextResponse.json({ error: "Sesi Check-Out belum dimulai atau sudah berakhir." }, { status: 403 });
+            }
+
             await db.update(attendances).set({
                 checkOut: new Date(now)
             }).where(eq(attendances.id, existingRecord[0].id));

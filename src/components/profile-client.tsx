@@ -18,12 +18,23 @@ import {
     CheckCircle2,
     AlertCircle,
     ShieldCheck,
+    Camera,
+    Image as ImageIcon,
+    Hash
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { uploadPhoto } from "@/lib/storage";
+import { updateProfile } from "@/app/actions/profile";
 
 export default function ProfilePage() {
     const { data: session, isPending } = authClient.useSession();
+
+    const [name, setName] = useState("");
+    const [nip, setNip] = useState("");
+    const [image, setImage] = useState<string | null>(null);
+    const [uploading, setUploading] = useState(false);
+    const [savingProfile, setSavingProfile] = useState(false);
 
     const [currentPassword, setCurrentPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
@@ -33,6 +44,50 @@ export default function ProfilePage() {
     const [showConfirm, setShowConfirm] = useState(false);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+    useEffect(() => {
+        if (session?.user) {
+            setName(session.user.name || "");
+            setNip((session.user as any).nip || "");
+            setImage(session.user.image || null);
+        }
+    }, [session]);
+
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !session?.user) return;
+
+        setUploading(true);
+        try {
+            const url = await uploadPhoto(file, session.user.id);
+            setImage(url);
+        } catch (error) {
+            setMessage({ type: "error", text: "Gagal mengupload foto." });
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleUpdateProfile = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setMessage(null);
+        setSavingProfile(true);
+
+        try {
+            const res = await updateProfile({ name, nip, image });
+            if (res.success) {
+                setMessage({ type: "success", text: "Profil berhasil diperbarui!" });
+                // We might need to refresh session here, but revalidatePath should help
+                // Better Auth might not update immediately in useSession without refresh
+            } else {
+                setMessage({ type: "error", text: res.error || "Gagal memperbarui profil." });
+            }
+        } catch (error) {
+            setMessage({ type: "error", text: "Terjadi kesalahan." });
+        } finally {
+            setSavingProfile(false);
+        }
+    };
 
     const handleChangePassword = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -83,18 +138,11 @@ export default function ProfilePage() {
     }
 
     return (
-        <div className="space-y-8 animate-in-fade max-w-lg mx-auto pb-12">
-            {/* Header */}
-            <div className="px-2">
-                <h1 className="text-3xl font-black tracking-tight uppercase italic">
-                    MY <span className="text-primary not-italic">PROFILE</span>
-                </h1>
-                <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest mt-1 opacity-60">
-                    Informasi akun & keamanan Anda.
-                </p>
-            </div>
+        <div className="space-y-4 animate-in-fade max-w-lg mx-auto pb-12">
+            {/* Identity Card & Edit Form */}
 
             {/* Identity Card */}
+            {/* Identity Card & Edit Form */}
             <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -104,42 +152,99 @@ export default function ProfilePage() {
                     <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent px-5 py-3 border-b border-white/5 flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-primary" />
                         <span className="text-[10px] font-black uppercase tracking-widest opacity-70">
-                            Identitas Karyawan
+                            Pengaturan Profil Karyawan
                         </span>
                     </div>
-                    <CardContent className="p-6 space-y-5">
-                        {/* Name */}
-                        <div className="flex items-center gap-4">
-                            <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                                <User className="w-5 h-5 text-primary" />
+                    <CardContent className="p-6">
+                        <form onSubmit={handleUpdateProfile} className="space-y-6">
+                            {/* Photo Upload */}
+                            <div className="flex flex-col items-center gap-4 py-2">
+                                <div className="relative group">
+                                    <div className="w-24 h-24 rounded-3xl bg-primary/10 border-2 border-dashed border-primary/20 overflow-hidden flex items-center justify-center">
+                                        {image ? (
+                                            <img src={image} alt="Avatar" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <User className="w-10 h-10 text-primary opacity-20" />
+                                        )}
+                                        {uploading && (
+                                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                                <Loader2 className="w-6 h-6 animate-spin text-white" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <Input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleUpload}
+                                        className="hidden"
+                                        id="avatar-upload"
+                                    />
+                                    <Label
+                                        htmlFor="avatar-upload"
+                                        className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center cursor-pointer shadow-lg hover:scale-110 transition-transform"
+                                    >
+                                        <Camera className="w-4 h-4" />
+                                    </Label>
+                                </div>
+                                <p className="text-[10px] font-black uppercase tracking-widest opacity-30">Tap camera icon to upload photo</p>
                             </div>
-                            <div className="min-w-0">
-                                <p className="text-[9px] font-black uppercase tracking-widest opacity-40 mb-0.5">
-                                    Nama Lengkap
-                                </p>
-                                <p className="text-lg font-bold tracking-tight truncate">
-                                    {session?.user?.name || "—"}
-                                </p>
-                            </div>
-                        </div>
 
-                        {/* Separator */}
-                        <div className="border-t border-white/5" />
+                            {/* Name Input */}
+                            <div className="space-y-2">
+                                <Label htmlFor="name" className="text-[10px] font-black uppercase tracking-widest opacity-50 flex items-center gap-2">
+                                    <User className="w-3 h-3" /> Nama Lengkap
+                                </Label>
+                                <Input
+                                    id="name"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    placeholder="Masukkan nama lengkap"
+                                    className="h-12 bg-white/5 border-white/10 focus:border-primary/50"
+                                    required
+                                />
+                            </div>
 
-                        {/* Email */}
-                        <div className="flex items-center gap-4">
-                            <div className="w-11 h-11 rounded-xl bg-indigo-500/10 flex items-center justify-center shrink-0">
-                                <Mail className="w-5 h-5 text-indigo-500" />
+                            {/* NIP Input */}
+                            <div className="space-y-2">
+                                <Label htmlFor="nip" className="text-[10px] font-black uppercase tracking-widest opacity-50 flex items-center gap-2">
+                                    <Hash className="w-3 h-3" /> NIP (Nomor Induk Pegawai)
+                                </Label>
+                                <Input
+                                    id="nip"
+                                    value={nip}
+                                    onChange={(e) => setNip(e.target.value)}
+                                    placeholder="Masukkan NIP"
+                                    className="h-12 bg-white/5 border-white/10 focus:border-primary/50"
+                                />
                             </div>
-                            <div className="min-w-0">
-                                <p className="text-[9px] font-black uppercase tracking-widest opacity-40 mb-0.5">
-                                    Email
-                                </p>
-                                <p className="text-lg font-bold tracking-tight truncate">
-                                    {session?.user?.email || "—"}
-                                </p>
+
+                            {/* Email (Readonly) */}
+                            <div className="space-y-2 opacity-60">
+                                <Label className="text-[10px] font-black uppercase tracking-widest opacity-50 flex items-center gap-2">
+                                    <Mail className="w-3 h-3" /> Email Kantor (Tetap)
+                                </Label>
+                                <Input
+                                    value={session?.user?.email || ""}
+                                    disabled
+                                    className="h-12 bg-white/5 border-white/10"
+                                />
                             </div>
-                        </div>
+
+                            <Button
+                                type="submit"
+                                disabled={savingProfile || uploading}
+                                className="w-full h-12 font-black uppercase tracking-[0.2em] text-[10px] rounded-xl"
+                            >
+                                {savingProfile ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                        Updating Mainframe...
+                                    </>
+                                ) : (
+                                    "UPDATE PROFIL"
+                                )}
+                            </Button>
+                        </form>
                     </CardContent>
                 </Card>
             </motion.div>

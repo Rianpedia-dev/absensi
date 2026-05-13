@@ -8,6 +8,7 @@ export const user = pgTable('user', {
   role: text('role').notNull().default('EMPLOYEE'), // 'ADMIN' or 'EMPLOYEE'
   emailVerified: boolean('email_verified').notNull().default(false),
   image: text('image'),
+  nip: text('nip'),
   banned: boolean('banned').default(false),
   banReason: text('ban_reason'),
   createdAt: timestamp('created_at').notNull(),
@@ -55,5 +56,14 @@ export const verification = pgTable('verification', {
   value: text('value').notNull(),
   expiresAt: timestamp('expires_at').notNull(),
   createdAt: timestamp('created_at').notNull(),
+  updatedAt: timestamp('updated_at').notNull(),
+});
+
+export const settings = pgTable('settings', {
+  id: text('id').primaryKey(),
+  checkInStart: text('check_in_start').notNull().default('07:00'),
+  checkInEnd: text('check_in_end').notNull().default('09:00'),
+  checkOutStart: text('check_out_start').notNull().default('16:00'),
+  checkOutEnd: text('check_out_end').notNull().default('18:00'),
   updatedAt: timestamp('updated_at').notNull(),
 });
