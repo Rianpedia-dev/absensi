@@ -9,8 +9,9 @@ import { AnimatedDashboardCards } from "@/components/dashboard/animated-cards";
 import { getDashboardData } from "./actions";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-import { Loader2, Radio, LogIn, LogOut, X, User } from "lucide-react";
+import { Loader2, Radio, LogIn, LogOut, X, User, BellRing, Clock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
 
 type AttendanceRecord = {
     id: string;
@@ -57,8 +58,10 @@ export default function DashboardPage() {
     }, []);
 
     const detectChanges = useCallback((newAttendances: AttendanceRecord[]) => {
+        console.log(`[Dashboard] Checking for changes in ${newAttendances.length} records...`);
+        
         if (isFirstLoad.current) {
-            // On first load, just populate the map, don't show alerts
+            console.log("[Dashboard] Initial load: caching current states.");
             newAttendances.forEach(r => {
                 prevDataRef.current.set(`${r.id}-checkin`, r.checkIn);
                 prevDataRef.current.set(`${r.id}-checkout`, r.checkOut);
@@ -70,10 +73,12 @@ export default function DashboardPage() {
         const newAlerts: AlertEvent[] = [];
 
         newAttendances.forEach(record => {
+            const hasCheckin = prevDataRef.current.has(`${record.id}-checkin`);
             const prevCheckout = prevDataRef.current.get(`${record.id}-checkout`);
 
             // New record (check-in just happened) - key not seen before
-            if (!prevDataRef.current.has(`${record.id}-checkin`)) {
+            if (!hasCheckin) {
+                console.log(`[Dashboard] DETECTED NEW CHECKIN: ${record.userName}`);
                 newAlerts.push({
                     id: `${record.id}-checkin-${Date.now()}`,
                     type: "checkin",
@@ -83,7 +88,9 @@ export default function DashboardPage() {
             }
 
             // Checkout updated from null to a value
-            if (prevCheckout === null && record.checkOut !== null && prevDataRef.current.has(`${record.id}-checkin`)) {
+            // We use != and == for loose null/undefined check if needed, but ISO strings are strict
+            if (hasCheckin && prevCheckout === null && record.checkOut !== null) {
+                console.log(`[Dashboard] DETECTED NEW CHECKOUT: ${record.userName}`);
                 newAlerts.push({
                     id: `${record.id}-checkout-${Date.now()}`,
                     type: "checkout",
@@ -92,13 +99,17 @@ export default function DashboardPage() {
                 });
             }
 
-            // Update tracked state
+            // Update tracked state for next poll
             prevDataRef.current.set(`${record.id}-checkin`, record.checkIn);
             prevDataRef.current.set(`${record.id}-checkout`, record.checkOut);
         });
 
         if (newAlerts.length > 0) {
-            setAlerts(prev => [...newAlerts, ...prev].slice(0, 5)); // max 5 alert sekaligus
+            setAlerts(prev => {
+                const combined = [...newAlerts, ...prev];
+                return combined.slice(0, 5); // max 5 alerts
+            });
+            
             // Auto-dismiss
             newAlerts.forEach(alert => {
                 setTimeout(() => dismissAlert(alert.id), ALERT_DURATION);
@@ -130,6 +141,20 @@ export default function DashboardPage() {
         return () => clearInterval(timer);
     }, []);
 
+    // For testing alerts manually
+    const triggerTestAlert = () => {
+        if (!data || data.attendances.length === 0) return;
+        const testRecord = data.attendances[0];
+        const testAlert: AlertEvent = {
+            id: `test-${Date.now()}`,
+            type: Math.random() > 0.5 ? "checkin" : "checkout",
+            record: testRecord,
+            timestamp: new Date(),
+        };
+        setAlerts(prev => [testAlert, ...prev].slice(0, 5));
+        setTimeout(() => dismissAlert(testAlert.id), ALERT_DURATION);
+    };
+
     if (loading || !data) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
@@ -140,16 +165,26 @@ export default function DashboardPage() {
     }
 
     return (
-        <div className="space-y-8 animate-in-fade">
+        <div className="space-y-8 animate-in-fade relative">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b pb-6 border-primary/10">
                 <div>
                     <h1 className="text-4xl font-black tracking-tight text-gray-900 dark:text-gray-100">
                         Monitor <span className="text-primary">Dashboard</span>
                     </h1>
-                    <p className="text-muted-foreground mt-2 font-medium">
-                        Selamat datang kembali, Admin. Berikut ringkasan kehadiran hari ini.
-                    </p>
+                    <div className="flex items-center gap-4 mt-2">
+                        <p className="text-muted-foreground font-medium">
+                            Selamat datang kembali, Admin. Berikut ringkasan kehadiran hari ini.
+                        </p>
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={triggerTestAlert}
+                            className="text-[10px] h-7 font-black uppercase tracking-widest opacity-30 hover:opacity-100 transition-opacity"
+                        >
+                            <BellRing className="w-3 h-3 mr-2" /> Test Alert
+                        </Button>
+                    </div>
                 </div>
                 <div className="flex items-center gap-3">
                     <div className="bg-primary/5 px-4 py-2 rounded-2xl border border-primary/10 flex flex-col items-center shadow-inner min-w-[140px]">
@@ -246,28 +281,28 @@ export default function DashboardPage() {
             </Card>
 
             {/* Real-time Alert Cards (floating, bottom-right) */}
-            <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 pointer-events-none" style={{ maxWidth: 360 }}>
-                <AnimatePresence>
+            <div className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-3 pointer-events-none" style={{ maxWidth: 360 }}>
+                <AnimatePresence mode="popLayout">
                     {alerts.map((alert) => (
                         <motion.div
                             key={alert.id}
-                            initial={{ opacity: 0, x: 80, scale: 0.9 }}
+                            initial={{ opacity: 0, x: 100, scale: 0.8 }}
                             animate={{ opacity: 1, x: 0, scale: 1 }}
-                            exit={{ opacity: 0, x: 80, scale: 0.9 }}
-                            transition={{ type: "spring", damping: 20, stiffness: 300 }}
+                            exit={{ opacity: 0, x: 100, scale: 0.8 }}
+                            transition={{ type: "spring", damping: 18, stiffness: 250 }}
                             className="pointer-events-auto"
                         >
                             <div
                                 className={`
-                                    relative flex items-start gap-3 p-4 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border backdrop-blur-xl
+                                    relative flex items-start gap-3 p-4 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.6)] border backdrop-blur-2xl
                                     ${alert.type === "checkin"
-                                        ? "bg-emerald-950/90 border-emerald-500/30"
-                                        : "bg-blue-950/90 border-blue-500/30"
+                                        ? "bg-emerald-950/95 border-emerald-500/40"
+                                        : "bg-blue-950/95 border-blue-500/40"
                                     }
                                 `}
                             >
                                 {/* Glowing left accent */}
-                                <div className={`absolute left-0 top-4 bottom-4 w-1 rounded-full ${alert.type === "checkin" ? "bg-emerald-500" : "bg-blue-500"}`} />
+                                <div className={`absolute left-0 top-4 bottom-4 w-1.5 rounded-full ${alert.type === "checkin" ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)]" : "bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]"}`} />
 
                                 {/* Photo */}
                                 <div className={`
@@ -277,40 +312,42 @@ export default function DashboardPage() {
                                     {alert.record.userImage ? (
                                         <img src={alert.record.userImage} alt={alert.record.userName || "User"} className="w-full h-full object-cover" />
                                     ) : (
-                                        <User className="w-6 h-6 opacity-40" />
+                                        <div className="bg-white/5 w-full h-full flex items-center justify-center">
+                                            <User className="w-6 h-6 opacity-40 text-white" />
+                                        </div>
                                     )}
                                 </div>
 
                                 {/* Info */}
-                                <div className="flex-1 min-w-0">
+                                <div className="flex-1 min-w-0 pr-4">
                                     {/* Status badge */}
                                     <div className={`inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest mb-1 ${alert.type === "checkin" ? "text-emerald-400" : "text-blue-400"}`}>
                                         {alert.type === "checkin" ? (
-                                            <><LogIn className="w-3 h-3" /> Check-In</>
+                                            <><LogIn className="w-3.5 h-3.5" /> Check-In</>
                                         ) : (
-                                            <><LogOut className="w-3 h-3" /> Check-Out</>
+                                            <><LogOut className="w-3.5 h-3.5" /> Check-Out</>
                                         )}
                                     </div>
-                                    <div className="font-black text-white truncate text-sm">{alert.record.userName || "Unknown"}</div>
-                                    {alert.record.userNip && (
-                                        <div className="text-[10px] font-mono text-white/40 mt-0.5">NIP: {alert.record.userNip}</div>
-                                    )}
-                                    <div className="text-[10px] text-white/30 mt-1">
-                                        {format(alert.timestamp, "HH:mm:ss")}
+                                    <div className="font-black text-white truncate text-sm leading-tight">{alert.record.userName || "Unknown User"}</div>
+                                    <div className="text-[10px] font-mono text-white/40 mt-1 uppercase tracking-tighter">
+                                        NIP: {alert.record.userNip || "———"}
+                                    </div>
+                                    <div className="text-[10px] text-white/30 mt-1.5 flex items-center gap-1">
+                                        <Clock className="w-3 h-3" /> {format(alert.timestamp, "HH:mm:ss")}
                                     </div>
                                 </div>
 
                                 {/* Close button */}
                                 <button
                                     onClick={() => dismissAlert(alert.id)}
-                                    className="absolute top-2 right-2 w-5 h-5 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+                                    className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors border border-white/10"
                                 >
                                     <X className="w-3 h-3 text-white/60" />
                                 </button>
 
                                 {/* Progress bar auto-dismiss */}
                                 <motion.div
-                                    className={`absolute bottom-0 left-0 h-0.5 rounded-b-2xl ${alert.type === "checkin" ? "bg-emerald-500" : "bg-blue-500"}`}
+                                    className={`absolute bottom-0 left-0 h-1 rounded-b-2xl ${alert.type === "checkin" ? "bg-emerald-500" : "bg-blue-500"}`}
                                     initial={{ width: "100%" }}
                                     animate={{ width: "0%" }}
                                     transition={{ duration: ALERT_DURATION / 1000, ease: "linear" }}
