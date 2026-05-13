@@ -58,11 +58,16 @@ export default function ProfilePage() {
         if (!file || !session?.user) return;
 
         setUploading(true);
+        setMessage(null);
         try {
             const url = await uploadPhoto(file, session.user.id);
             setImage(url);
-        } catch (error) {
-            setMessage({ type: "error", text: "Gagal mengupload foto." });
+        } catch (error: any) {
+            console.error("Upload error detail:", error);
+            setMessage({ 
+                type: "error", 
+                text: error.message || "Gagal mengupload foto. Pastikan koneksi stabil." 
+            });
         } finally {
             setUploading(false);
         }
