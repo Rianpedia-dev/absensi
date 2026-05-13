@@ -2,17 +2,40 @@ name: Supabase Keep Alive
 
 on:
   schedule:
-    # Berjalan otomatis setiap 3 hari sekali pada jam 00:00 UTC
-    - cron: '0 0 */3 * *' 
-  workflow_dispatch: 
-    # Menambahkan ini agar Anda bisa mengetesnya secara manual kapan saja
+    # Berjalan setiap hari pada jam 08:00 WIB (01:00 UTC)
+    # Supabase free tier akan pause setelah 7 hari tidak aktif
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+    # Jalankan manual kapan saja melalui tab Actions di GitHub
 
 jobs:
   ping_supabase:
+    name: Ping Database Supabase
     runs-on: ubuntu-latest
+
     steps:
-      - name: Ping Supabase API
+      - name: Ping Supabase REST API
         run: |
-          curl -X GET '${{ secrets.SUPABASE_URL }}/rest/v1/user?select=*&limit=1' \
-          -H 'apikey: ${{ secrets.SUPABASE_ANON_KEY }}' \
-          -H 'Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}'
+          echo "🔔 Mengirim ping ke Supabase untuk mencegah database pause..."
+          
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X GET "${{ secrets.SUPABASE_URL }}/rest/v1/employees?select=id&limit=1" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}")
+          
+          echo "📡 HTTP Status: $RESPONSE"
+          
+          if [ "$RESPONSE" -ge 200 ] && [ "$RESPONSE" -lt 300 ]; then
+            echo "✅ Berhasil! Database Supabase aktif dan merespons."
+          elif [ "$RESPONSE" -eq 401 ] || [ "$RESPONSE" -eq 403 ]; then
+            echo "⚠️  Autentikasi ditolak (Status $RESPONSE), tapi database sudah AKTIF (tidak pause)."
+            exit 0
+          else
+            echo "❌ Gagal ping database! Status: $RESPONSE"
+            exit 1
+          fi
+
+      - name: Konfirmasi Status
+        run: |
+          echo "✅ Keep-alive selesai pada: $(date +'%Y-%m-%d %H:%M:%S UTC')"
+          echo "🗓️  Ping berikutnya dijadwalkan besok jam 08:00 WIB"
