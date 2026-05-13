@@ -17,19 +17,16 @@ jobs:
       - name: Ping Supabase REST API
         run: |
           echo "🔔 Mengirim ping ke Supabase untuk mencegah database pause..."
-          
+
           RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
-            -X GET "${{ secrets.SUPABASE_URL }}/rest/v1/employees?select=id&limit=1" \
-            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}")
-          
+            -X GET "${{ secrets.SUPABASE_URL }}/rest/v1/settings?select=id&limit=1" \
+            -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}")
+
           echo "📡 HTTP Status: $RESPONSE"
-          
+
           if [ "$RESPONSE" -ge 200 ] && [ "$RESPONSE" -lt 300 ]; then
             echo "✅ Berhasil! Database Supabase aktif dan merespons."
-          elif [ "$RESPONSE" -eq 401 ] || [ "$RESPONSE" -eq 403 ]; then
-            echo "⚠️  Autentikasi ditolak (Status $RESPONSE), tapi database sudah AKTIF (tidak pause)."
-            exit 0
           else
             echo "❌ Gagal ping database! Status: $RESPONSE"
             exit 1
