@@ -1,6 +1,9 @@
 import { supabase } from "./supabase"
 
 export async function uploadPhoto(file: File, userId: string) {
+  if (!supabase) {
+    throw new Error("Supabase client is not initialized. Check your environment variables.")
+  }
   const fileExt = file.name.split('.').pop()
   const fileName = `${userId}-${Math.random()}.${fileExt}`
   const filePath = `employees/${fileName}`
