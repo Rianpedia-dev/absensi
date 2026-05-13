@@ -41,8 +41,9 @@ export async function POST(req: Request) {
         let isCheckOutWindow = true;
 
         if (config) {
-            const nowTime = new Date();
-            const currentMinutes = nowTime.getHours() * 60 + nowTime.getMinutes();
+            // Gunakan zona waktu WIB (Asia/Jakarta) agar cocok dengan jam yang diatur admin
+            const nowWIB = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Jakarta" }));
+            const currentMinutes = nowWIB.getHours() * 60 + nowWIB.getMinutes();
 
             const parseTime = (timeStr: string) => {
                 const [h, m] = timeStr.split(":").map(Number);
@@ -62,8 +63,8 @@ export async function POST(req: Request) {
             }
         }
 
-        // Ambil tanggal hari ini dalam format YYYY-MM-DD (Local Time)
-        const today = new Date().toLocaleDateString("en-CA");
+        // Ambil tanggal hari ini dalam format YYYY-MM-DD sesuai zona waktu WIB
+        const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
         const userId = session.user.id;
 
         // Cek apakah user sudah absen hari ini
